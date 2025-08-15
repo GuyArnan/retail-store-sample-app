@@ -1,7 +1,7 @@
 # AWS Containers Retail Sample - UI Service
 
 <!-- GitOps Test: Testing deploy-simple.yml workflow -->
-hello doaston
+hello doston
 
 | Language | Persistence |
 | -------- | ----------- |
