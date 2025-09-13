@@ -384,6 +384,25 @@ kubectl get svc -n ingress-nginx
 Create ingress configuration for external access to your application.
 
 
+## Project Deliverables
+
+### **Required Submissions:**
+
+1. **Forked Repository**
+   - Fork this repository to your GitHub account
+   - All your implementation code (Terraform, scripts, Helm charts, CI/CD)
+   - Clean, well-documented code with meaningful commit messages
+
+2. **Proof of Deployment**
+   - Screenshots of your running kubeadm cluster (`kubectl get nodes`)
+   - Screenshots of all deployed services (`kubectl get pods`)
+   - Screenshots of the retail store application running in browser
+   - Screenshots of your CI/CD pipeline execution
+   - Screenshots of ECR repositories with pushed images
+
+3. **Reflections Document**
+   - Create a `reflections.md` file in your repository root
+
 ## 📚 Learning Resources
 
 ### **Kubernetes**
