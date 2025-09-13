@@ -29,7 +29,7 @@ This is a comprehensive Kubernetes project designed to teach students how to dep
 
 The retail store application demonstrates a modern microservices architecture deployed on a kubeadm Kubernetes cluster:
 
-![Architecture](./docs/images/architecture.png)
+![Architecture](./docs/images/EKS.gif)
 
 ### **Application Components**
 
