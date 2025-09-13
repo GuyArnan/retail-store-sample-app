@@ -54,7 +54,7 @@ The infrastructure follows cloud-native best practices:
 
 ## 🛠️ Prerequisites
 
-Students need to install:
+You need to install:
 - **AWS CLI** (v2+) - [Install Guide](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html)
 - **Terraform** (1.0+) - [Install Guide](https://developer.hashicorp.com/terraform/install)
 - **kubectl** (1.28+) - [Install Guide](https://kubernetes.io/docs/tasks/tools/)
@@ -63,6 +63,7 @@ Students need to install:
 - **Git** (2.0+) - [Install Guide](https://git-scm.com/downloads)
 
 ### **Quick Installation Scripts**
+***Versions might be older than latest !***
 
 <details>
 <summary><strong>🔧 One-Click Installation</strong></summary>
@@ -158,24 +159,14 @@ aws configure
    - ECR repositories for all 5 services
    - Application Load Balancer (Can be set up later)
 
-#### **🎯 Deployment Strategy - Public vs Private Subnets**
+#### **Deployment Strategy - Public vs Private Subnets**
 
 **📌 Main Requirement: Public Subnet Deployment**
 - Deploy all cluster nodes on **public subnets** for easier setup
-- Direct internet access for nodes simplifies configuration
-- Easier troubleshooting and access during development
-- Suitable for learning and development environments
 
 **🏆 Bonus Challenge: Private Subnet Deployment**
 - Deploy worker nodes on **private subnets** for enhanced security
-- Control plane can remain on public subnet for easier access
-- Requires NAT Gateway for outbound internet access
-- Demonstrates production-ready security practices
-- **Extra points** for implementing this advanced configuration
 
-**Security Considerations**:
-- Public subnets: Use security groups and SSH key pairs for access control
-- Private subnets: Implement bastion host or VPN for secure access
 
 #### **Terraform Structure**:
 
@@ -277,24 +268,14 @@ Create IAM user with ECR permissions:
 
 #### **Required Workflow Files**:
 
-1. **`.github/workflows/build.yml`**:
+1. **`.github/workflows/build-and-deploy.yml`**:
    - Trigger on push to main branch
    - Detect changed services in `src/` directory
    - Build Docker images only for changed services
    - Push images to ECR with commit hash tags
    - Parallel builds for multiple services
+   - Push the new image to ECR Registry using the new user Credentials
 
-2. **`.github/workflows/test.yml`**:
-   - Trigger on pull requests and pushes
-   - Run unit tests for all services
-   - Security vulnerability scanning
-   - Code quality checks
-
-3. **`.github/workflows/deploy.yml`**:
-   - Trigger on successful build completion
-   - Update Helm chart values with new image tags
-   - Commit changes back to repository
-   - Generate deployment commands
 
 #### **GitHub Secrets Configuration**:
 ```
@@ -323,29 +304,47 @@ AWS_ACCOUNT_ID        # AWS account ID
 
 
 
-### **Step 4.2: Manual Deployment**
+### **Step 4.2: Install Dependencies**
+
+**Your Task**: Install the required databases and dependencies for the microservices.
+
+![Application Dependencies](./docs/images/architecture-apps.png)
+
+#### **Required Dependencies**:
+- **PostgreSQL** - for Catalog and Orders services
+- **Redis** - for Cart service caching
+- **RabbitMQ** - for Checkout service messaging
+- **DynamoDB Local** - for Cart service persistence
+
+#### **Installation Options**:
+```bash
+# Option 1: Use Helm charts (recommended)
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm install postgresql bitnami/postgresql
+helm install redis bitnami/redis
+helm install rabbitmq bitnami/rabbitmq
+
+# Option 2: Create your own Kubernetes manifests
+# Create YAML files for PostgreSQL, Redis, RabbitMQ, DynamoDB Local
+```
+
+#### **Service Connections**:
+- Use Kubernetes service names for internal communication
+
+### **Step 4.3: Manual Deployment**
 
 **Your Task**: Deploy the application using Helm charts with manual commands.
 
 #### **Deployment Order** (respect dependencies):
 
 ```bash
-# 1. Deploy infrastructure services first
-kubectl apply -f infrastructure/
+# 1. Deploy dependencies first (see above)
 
-# 2. Deploy Catalog Service (depends on PostgreSQL)
+# 2. Deploy application services
 helm install catalog ./src/catalog/chart
-
-# 3. Deploy Orders Service (depends on PostgreSQL)
 helm install orders ./src/orders/chart
-
-# 4. Deploy Cart Service (depends on Redis, DynamoDB)
 helm install cart ./src/cart/chart
-
-# 5. Deploy Checkout Service (depends on Cart, Orders, RabbitMQ)
 helm install checkout ./src/checkout/chart
-
-# 6. Deploy UI Service (depends on all other services)
 helm install ui ./src/ui/chart
 ```
 
