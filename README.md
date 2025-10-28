@@ -14,7 +14,7 @@
   </strong>
 </div>
 
-This is a comprehensive Kubernetes project designed to teach students how to deploy a complete microservices application on a **kubeadm cluster**. The project covers cluster setup, infrastructure provisioning with Terraform, CI/CD pipelines, and manual deployment using Helm charts.
+This is a comprehensive Kubernetes project designed to teach students how to deploy a complete microservices application on a **kubeadm cluster**. The project covers cluster setup, infrastructure provisioning with Terraform, CI/CD pipelines, manual deployment using Helm charts, and automated GitOps-based deployment with ArgoCD.
 
 ## 📋 Project Overview
 
@@ -24,6 +24,7 @@ This is a comprehensive Kubernetes project designed to teach students how to dep
 - Deploy applications using **Helm charts** with manual deployment
 - Manage container images with **Amazon ECR**
 - Use **Ingress Controller** for external access
+- Implement **GitOps** with ArgoCD for automated application deployment
 
 ## 🏗️ Architecture
 
@@ -51,6 +52,7 @@ The infrastructure follows cloud-native best practices:
 - **Infrastructure as Code**: All AWS resources defined using Terraform
 - **CI/CD**: Automated build and deployment pipelines with GitHub Actions
 - **Manual Deployment**: Helm charts for application packaging and deployment
+- **GitOps**: Declarative deployments with ArgoCD for automated synchronization
 
 ## 🛠️ Prerequisites
 
@@ -384,6 +386,83 @@ kubectl get svc -n ingress-nginx
 Create ingress configuration for external access to your application.
 
 
+## **Phase 5: GitOps with ArgoCD**
+
+### **Step 5.1: Install ArgoCD**
+
+**Your Task**: Install ArgoCD on your kubeadm cluster to enable GitOps-based deployment.
+
+#### **Installation Options**:
+- Use the course ArgoCD installation guide and module for examples
+- Or use the official ArgoCD Helm chart.
+
+### **Step 5.2: Setup GitOps Repository**
+
+**Your Task**: Create a separate GitOps repository to store your Kubernetes manifests and Helm charts.
+
+#### **Repository Setup**:
+- Create a new Git repository for your manifests (separate from application source code)
+- Choose your deployment pattern:
+  - **App of Apps** pattern (recommended for managing multiple applications)
+  - **Individual ArgoCD Application** manifests for each service
+
+### **Step 5.3: Create ArgoCD Applications**
+
+**Your Task**: Define ArgoCD Application manifests for your microservices.
+
+#### **Example: Catalog Service Application**:
+
+Create `application-catalog.yaml`:
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: retail-store-catalog
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  source:
+    repoURL: https://github.com/<your-username>/gitops-retail-store.git # ---> Where the Kubernetes Manifests. 
+    targetRevision: main
+    path: apps/catalog
+    helm:
+      valueFiles:
+        - values.yaml
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+```
+
+#### **Required Applications**:
+Create similar ArgoCD Application manifests for:
+- `application-cart.yaml`
+- `application-orders.yaml`
+- `application-checkout.yaml`
+- `application-ui.yaml`
+- `application-dependencies.yaml` (for PostgreSQL, Redis, RabbitMQ, DynamoDB) (You can use an app per dependency)
+
+### **Step 5.4: Integrate with CI/CD Pipeline**
+
+**Your Task**: Update your GitHub Actions workflow to automatically update the GitOps repository with new image tags after successful builds.
+
+**Implementation**:
+- Add a new job in your workflow to commit updated image tags to the GitOps repository (Don't forget to use the token like we did in the class)
+- ArgoCD will automatically detect the changes and deploy the new versions
+- Ensure proper authentication to the GitOps repository using GitHub secrets
+
+
 ## Project Deliverables
 
 ### **Required Submissions:**
@@ -393,15 +472,25 @@ Create ingress configuration for external access to your application.
    - All your implementation code (Terraform, scripts, Helm charts, CI/CD)
    - Clean, well-documented code with meaningful commit messages
 
-2. **Proof of Deployment**
+2. **GitOps Repository**
+   - Separate GitOps repository for Kubernetes manifests
+   - ArgoCD Application manifests for all services
+   - Environment-specific configurations (dev/staging/prod)
+   - Documentation on repository structure and deployment flow
+
+3. **Proof of Deployment**
    - Screenshots of your running kubeadm cluster (`kubectl get nodes`)
    - Screenshots of all deployed services (`kubectl get pods`)
    - Screenshots of the retail store application running in browser
    - Screenshots of your CI/CD pipeline execution
    - Screenshots of ECR repositories with pushed images
+   - Screenshots of ArgoCD UI showing all applications in Synced and Healthy state
+   - Screenshots showing GitOps workflow (Git commit → ArgoCD sync → deployment)
 
-3. **Reflections Document**
+4. **Reflections Document**
    - Create a `reflections.md` file in your repository root
+   - Include a section on your GitOps implementation experience
+   - Document the benefits and challenges of using ArgoCD vs manual Helm deployments
 
 ## 📚 Learning Resources
 
