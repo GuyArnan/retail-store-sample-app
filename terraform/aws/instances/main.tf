@@ -5,6 +5,8 @@ provider "aws" {
 module "ec2_instance" {
   source = "../modules/ec2"
 
+/*
+I used this originally but ended up importing a working existing cluster. Keeping the section below for documentation's sake
   instance_name  = "k8s-node"
   ami_id         = "ami-00c257e12d6828491"
   instance_type  = "t2.medium"
@@ -21,7 +23,7 @@ outbound_to_port   = ["0"]
 outbound_protocol  = ["-1"]
 outbound_cidr      = ["0.0.0.0/0"]
 }
-
+*/
 
 #Following rows will allow for tf import (i messed up in this part)
 resource "aws_vpc" "k8s_vpc" {}
