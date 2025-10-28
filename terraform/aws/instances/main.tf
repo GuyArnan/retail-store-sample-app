@@ -54,7 +54,7 @@ resource "aws_subnet" "k8s_subnet_2" {
 		ignore_changes = [vpc_id,                                                            
                                   cidr_block,                                                        
                                   availability_zone]                                                 
-                                                                                                             }
+  }
 }
 
 resource "aws_instance" "control_plane" {
