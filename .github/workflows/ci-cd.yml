@@ -1,0 +1,46 @@
+name: CI-CD pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS creds
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-west-2 #preferred to hard code here
+
+    - name: Log into ECR
+      id: ecr-login
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build Docker image
+      run: docker build -t retail-store-app:${{ github.sha }} .
+
+    - name: Tag Docker image for ECR
+      run: docker tag retail-store-app:${{ github.sha }} ${{ steps.ecr-login.outputs.registry }}/retail-store-app:${{ github.sha }}
+
+    - name: Push Docker image to ECR
+      run: docker push ${{ steps.ecr-login.outputs.registry }}/retail-store-app:${{ github.sha }}
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'latest'
+
+    - name: Deploy to Kubernetes
+      env:
+        KUBECONFIG: ${{ secrets.KUBECONFIG }}
+      run: |
+        kubectl set image deployment/retail-store-deployment retail-store-container=${{ steps.ecr-login.outputs.registry }}/retail-store-app:${{ github.sha }}
+        kubectl rollout status deployment/retail-store-deployment

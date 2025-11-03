@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: retail-store-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: retail-store-app
+  template:
+    metadata:
+      labels:
+        app: retail-store-app
+    spec:
+      containers:
+      - name: retail-store-container
+        image: $ECR_REPO/retail-store-app:latest
+        ports:
+        - containerPort: 80
