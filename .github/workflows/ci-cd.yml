@@ -26,7 +26,7 @@ jobs:
 
     - name: Build and push images for all services
       run: |
-        services=("UI", "Catalog", "Cart", "Orders", "Checkout")
+        services=("ui" "catalog" "cart" "orders" "checkout")
         for service in "${services[@]}"; do
           docker build -t retail-store-$service:${{ github.sha }} ./$service
           docker tag retail-store-$service:${{ github.sha }} ${{ steps.ecr-login.outputs.registry }}/retail-store-$service:${{ github.sha }}
