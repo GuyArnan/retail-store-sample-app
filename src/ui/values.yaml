@@ -1,6 +1,6 @@
 image:
   repository: "630019796862.dkr.ecr.us-west-2.amazonaws.com/retail-store-ui" #sorry for hard-coding :(
-  tag: "latest"
+  tag: "<commit-sha>"
 
 service:
   port: 8080
