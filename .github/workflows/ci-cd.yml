@@ -13,34 +13,41 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Configure AWS creds
+    - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-west-2 #preferred to hard code here
+        aws-region: us-west-2
 
-    - name: Log into ECR
+    - name: Log in to Amazon ECR
       id: ecr-login
       uses: aws-actions/amazon-ecr-login@v1
 
-    - name: Build Docker image
-      run: docker build -t retail-store-app:${{ github.sha }} .
+    - name: Build and push images for all services
+      run: |
+        services=("UI", "Catalog", "Cart", "Orders", "Checkout")
+        for service in "${services[@]}"; do
+          docker build -t retail-store-$service:${{ github.sha }} ./$service
+          docker tag retail-store-$service:${{ github.sha }} ${{ steps.ecr-login.outputs.registry }}/retail-store-$service:${{ github.sha }}
+          docker push ${{ steps.ecr-login.outputs.registry }}/retail-store-$service:${{ github.sha }}
+        done
 
-    - name: Tag Docker image for ECR
-      run: docker tag retail-store-app:${{ github.sha }} ${{ steps.ecr-login.outputs.registry }}/retail-store-app:${{ github.sha }}
-
-    - name: Push Docker image to ECR
-      run: docker push ${{ steps.ecr-login.outputs.registry }}/retail-store-app:${{ github.sha }}
-
-    - name: Set up kubectl
+    - name: Kubectl set up
       uses: azure/setup-kubectl@v3
       with:
         version: 'latest'
 
-    - name: Deploy to Kubernetes
-      env:
-        KUBECONFIG: ${{ secrets.KUBECONFIG }}
+    - name: Setup kubeconfig secret
+      run: echo "${{  secrets.KUBECONFIG }}" > kubeconfig.yaml
+
+    - name: Deploy services to K8s
       run: |
-        kubectl set image deployment/retail-store-deployment retail-store-container=${{ steps.ecr-login.outputs.registry }}/retail-store-app:${{ github.sha }}
-        kubectl rollout status deployment/retail-store-deployment
+        for service in "${services[@]}"; do
+          deployment_name="retail-store-$service-deployment"
+          container_name="retail-store-$service-container"
+          image_uri="${{ steps.ecr-login.outputs.registry  }}/retail-store-$service:${{ github.sha }}"
+          kubectl --kubeconfig=kubeconfig.yaml set image deployment/$deployment_name $container_name=$image_uri
+          kubectl --kubeconfig=kubeconfig.yaml rollout status deployment/$deployment_name
+        done
+
