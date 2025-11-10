@@ -35,10 +35,8 @@ jobs:
         services=("ui" "catalog" "cart" "orders" "checkout")
         for service in "${services[@]}"; do
           IMAGE_URI=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/retail-store-$service
-
-          docker build -t retail-store-$service:${{ github.sha }} ./src/$service
-          docker tag retail-store-$service:${{ github.sha }} ${{ steps.ecr-login.outputs.registry }}/retail-store-$service:${{ github.sha }}
-          docker push ${{ steps.ecr-login.outputs.registry }}/retail-store-$service:${{ github.sha }}
+          docker build -t $IMAGE_URI:$IMAGE_TAG ./src/$service
+          docker push $IMAGE_URI:$IMAGE_TAG
         done
 
     - name: Kubectl set up
