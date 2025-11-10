@@ -28,7 +28,7 @@ jobs:
       run: |
         services=("ui" "catalog" "cart" "orders" "checkout")
         for service in "${services[@]}"; do
-          docker build -t retail-store-$service:${{ github.sha }} ./$service
+          docker build -t retail-store-$service:${{ github.sha }} ./src/$service
           docker tag retail-store-$service:${{ github.sha }} ${{ steps.ecr-login.outputs.registry }}/retail-store-$service:${{ github.sha }}
           docker push ${{ steps.ecr-login.outputs.registry }}/retail-store-$service:${{ github.sha }}
         done
