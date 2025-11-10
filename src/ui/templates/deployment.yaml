@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "ui.fullname" . }}
+  name: {{ .Release.Name }}-ui
   labels:
-    app: {{ include "ui.name" . }}
+    app: {{ .Release.Name }}-ui
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: {{ include "ui.name" . }}
+      app: {{ .Release.Name }}-ui
   template:
     metadata:
       labels:
-        app: {{ include "ui.name" . }}
+        app: {{ .Release.Name }}-ui
     spec:
       containers:
         - name: ui
