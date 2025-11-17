@@ -20,7 +20,7 @@ spec:
         - name: ui
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           ports:
-            - containerPort: {{ .Values.service.port }}
+            - containerPort: {{ .Values.service.targetPort }}
           resources:
             requests:
               memory: {{ .Values.resources.requests.memory }}
@@ -28,15 +28,15 @@ spec:
             limits:
               memory: {{ .Values.resources.limits.memory }}
               cpu: {{ .Values.resources.limits.cpu }}
-          livenessProbe:
-            httpGet:
-              path: {{ .Values.healthCheckPath }}
-              port: {{ .Values.service.port }}
-            initialDelaySeconds: 15
-            periodSeconds: 20
-          readinessProbe:
-            httpGet:
-              path: {{ .Values.healthCheckPath }}
-              port: {{ .Values.service.port }}
-            initialDelaySeconds: 5
-            periodSeconds: 10
+#          livenessProbe:
+#            httpGet:
+#              path: {{ .Values.healthCheckPath }}
+#              port: {{ .Values.service.port }}
+#            initialDelaySeconds: 15
+#            periodSeconds: 20
+#          readinessProbe:
+#            httpGet:
+#              path: {{ .Values.healthCheckPath }}
+#              port: {{ .Values.service.port }}
+#            initialDelaySeconds: 5
+#            periodSeconds: 10
