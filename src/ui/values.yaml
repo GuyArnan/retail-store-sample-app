@@ -1,6 +1,14 @@
+# Default values for orders.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
 image:
-  repository: "630019796862.dkr.ecr.us-west-2.amazonaws.com/retail-store-ui" #sorry for hard-coding :(
-  tag: "latest"
+  repository: "630019796862.dkr.ecr.us-west-2.amazonaws.com/retail-store-orders"
+  pullPolicy: Always
+  tag: "39454b2d7fea654d6ed6d55e36ef164f5a4302f3" #sorry for hardcoding
+imagePullSecrets:
+  - name: regcred
 
 service:
   port: 80

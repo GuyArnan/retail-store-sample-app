@@ -15,7 +15,7 @@ spec:
         app: {{ .Release.Name }}-ui
     spec:
       imagePullSecrets:
-        - name: ecr-creds
+        - name: regcred
       containers:
         - name: ui
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

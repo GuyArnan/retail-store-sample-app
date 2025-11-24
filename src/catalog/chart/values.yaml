@@ -4,9 +4,9 @@
 
 replicaCount: 1
 image:
-  repository: $CATALOG_ECRREPO
+  repository: "630019796862.dkr.ecr.us-west-2.amazonaws.com/retail-store-catalog" #doesnt work unless hard-coded
   pullPolicy: Always
-  tag: latest
+  tag: "39454b2d7fea654d6ed6d55e36ef164f5a4302f3" #until this is injected
 imagePullSecrets:
   - name: regcred
 nameOverride: ""
