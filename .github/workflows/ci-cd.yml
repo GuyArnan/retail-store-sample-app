@@ -81,13 +81,13 @@ jobs:
 
       - name: Update image tags in GitOps values
         run: |
-          TAG="${{ github.sha }}"
+          TAG=${{ github.sha }}
           SERVICES=("ui" "catalog" "cart" "orders" "checkout")
           for service in "${SERVICES[@]}"; do
             VALUES_FILE="charts/$service/values.yaml"
             if [ -f "$VALUES_FILE" ]; then
               echo "Updating $VALUES_FILE image.tag -> $TAG"
-              yq -i '.image.tag = \"#{TAG}\"" "$VALUES_FILE"
+              yq -i '.image.tag = "'"$TAG"'"' "$VALUES_FILE"
             fi
           done
 
