@@ -1,4 +1,4 @@
-name: CI-CD pipeline
+name: CI - Build and push images for modified services only
 
 on:
   push:
@@ -10,50 +10,55 @@ env:
   AWS_ACCOUNT_ID: 630019796862
 
 jobs:
-  build-and-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
     env:
       IMAGE_TAG: ${{ github.sha }}
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-west-2
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-    - name: Log in to Amazon ECR
-      id: ecr-login
-      uses: aws-actions/amazon-ecr-login@v1
+      - name: Log in to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v1
 
-    - name: Build and push images for all services
-      run: |
-        services=("ui" "catalog" "cart" "orders" "checkout")
-        for service in "${services[@]}"; do
-          IMAGE_URI=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/retail-store-$service
-          docker build -t $IMAGE_URI:$IMAGE_TAG ./src/$service
-          docker push $IMAGE_URI:$IMAGE_TAG
-        done
+      - name: Detect changed services
+        id: changes
+        run: |
+          SERVICES=("ui" "catalog" "cart" "orders" "checkout")
+          CHANGED=""
+          # Handle first push to main gracefully
+          if [ "$(git rev-list --count HEAD)" -eq 1 ]; then
+            # First commit: build everything
+            CHANGED="${SERVICES[*]}"
+          else
+            for s in "${SERVICES[@]}"; do
+              if git diff --name-only HEAD^ HEAD | grep -q "^src/$s/"; then
+                CHANGED="$CHANGED $s"
+              fi
+            done
+          fi
+          echo "Changed services: $CHANGED"
+          echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
 
-    - name: Kubectl set up
-      uses: azure/setup-kubectl@v3
-      with:
-        version: 'latest'
+      - name: Build and push images for changed services
+        if: steps.changes.outputs.changed != ''
+        run: |
+          for service in ${{ steps.changes.outputs.changed }}; do
+            IMAGE_URI=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/retail-store-$service
+            echo "Building and pushing image for service: $service -> $IMAGE_URI:${IMAGE_TAG}"
+            docker build -t "$IMAGE_URI:$IMAGE_TAG" "./src/$service"
+            docker push "$IMAGE_URI:$IMAGE_TAG"
+          done
 
-    - name: Setup kubeconfig secret
-      run: echo "${{  secrets.KUBECONFIG }}" > kubeconfig.yaml
-
-    - name: Deploy services to K8s
-      run: |
-        for service in "${services[@]}"; do
-          deployment_name="retail-store-$service-deployment"
-          container_name="retail-store-$service-container"
-          image_uri="${{ steps.ecr-login.outputs.registry  }}/retail-store-$service:${{ github.sha }}"
-          kubectl --kubeconfig=kubeconfig.yaml set image deployment/$deployment_name $container_name=$image_uri
-          kubectl --kubeconfig=kubeconfig.yaml rollout status deployment/$deployment_name
-        done
-
+      - name: No services changed
+        if: steps.changes.outputs.changed == ''
+        run: echo "No src/* services changed; skipping image build and push."
