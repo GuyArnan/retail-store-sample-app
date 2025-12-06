@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       IMAGE_TAG: ${{ github.sha }}
+    outputs:
+      changed: ${{ steps.changes.outputs.changed }}
 
     steps:
       - name: Checkout app source
@@ -66,6 +68,7 @@ jobs:
 
   update-gitops:
     needs: build-and-push
+    if: needs.build-and-push.outputs.changed != ''
     runs-on: ubuntu-latest
 
     steps:
@@ -101,8 +104,6 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-
-          # Make sure remote uses PAT
           git remote set-url origin https://x-access-token:${PAT}@github.com/GuyArnan/retail-app-argoCD-config.git
 
           git status
