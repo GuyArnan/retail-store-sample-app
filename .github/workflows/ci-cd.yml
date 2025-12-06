@@ -87,17 +87,17 @@ jobs:
           sudo chmod +x /usr/local/bin/yq
 
       - name: Update image tags in GitOps values
+        env:
+          CHANGED: ${{ needs.build-and-push.outputs.changed }}
         run: |
           TAG=${{ github.sha }}
-          SERVICES=("ui" "catalog" "cart" "orders" "checkout")
-          for service in "${SERVICES[@]}"; do
+          for service in $CHANGED; do
             VALUES_FILE="charts/$service/values.yaml"
             if [ -f "$VALUES_FILE" ]; then
               echo "Updating $VALUES_FILE image.tag -> $TAG"
               yq -i '.image.tag = "'"$TAG"'"' "$VALUES_FILE"
             fi
           done
-
       - name: Commit and push changes
         env:
           PAT: ${{ secrets.GITOPS_REPO_TOKEN }}
