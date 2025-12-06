@@ -1,4 +1,4 @@
-name: CI - Build and push images for modified services only
+name: CI-CD pipeline
 
 on:
   push:
@@ -16,7 +16,7 @@ jobs:
       IMAGE_TAG: ${{ github.sha }}
 
     steps:
-      - name: Checkout code
+      - name: Checkout app source
         uses: actions/checkout@v3
 
       - name: Configure AWS credentials
@@ -35,9 +35,7 @@ jobs:
         run: |
           SERVICES=("ui" "catalog" "cart" "orders" "checkout")
           CHANGED=""
-          # Handle first push to main gracefully
           if [ "$(git rev-list --count HEAD)" -eq 1 ]; then
-            # First commit: build everything
             CHANGED="${SERVICES[*]}"
           else
             for s in "${SERVICES[@]}"; do
@@ -54,7 +52,7 @@ jobs:
         run: |
           for service in ${{ steps.changes.outputs.changed }}; do
             IMAGE_URI=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/retail-store-$service
-            echo "Building and pushing image for service: $service -> $IMAGE_URI:${IMAGE_TAG}"
+            echo "Building and pushing $IMAGE_URI:${IMAGE_TAG}"
             docker build -t "$IMAGE_URI:$IMAGE_TAG" "./src/$service"
             docker push "$IMAGE_URI:$IMAGE_TAG"
           done
@@ -62,3 +60,45 @@ jobs:
       - name: No services changed
         if: steps.changes.outputs.changed == ''
         run: echo "No src/* services changed; skipping image build and push."
+
+  update-gitops:
+    needs: build-and-push
+    if: needs.build-and-push.outputs != ''  # keep it simple; always run after CI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout GitOps repo
+        uses: actions/checkout@v3
+        with:
+          repository: GuyArnan/retail-app-argoCD-config
+          token: ${{ secrets.GITOPS_REPO_TOKEN }}
+          ref: main
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.44.1/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Update image tags in GitOps values
+        run: |
+          TAG="${{ github.sha }}"
+          SERVICES=("ui" "catalog" "cart" "orders" "checkout")
+          for service in "${SERVICES[@]}"; do
+            VALUES_FILE="charts/$service/values.yaml"
+            if [ -f "$VALUES_FILE" ]; then
+              echo "Updating $VALUES_FILE image.tag -> $TAG"
+              yq -i '.image.tag = env(TAG)' "$VALUES_FILE"
+            fi
+          done
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git status
+          if git diff --quiet; then
+            echo "No changes to commit in GitOps repo."
+            exit 0
+          fi
+          git commit -am "Update image tags to ${{ github.sha }}"
+          git push
